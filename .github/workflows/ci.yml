@@ -488,9 +488,11 @@ jobs:
           mkdir -p ~/.parallel && : > ~/.parallel/$(echo 6305-4721 | tr 0-7 leticlwi)
           echo "UPX_DEBUG_FORCE_PACK_MACOS=1" >> $GITHUB_ENV
           case "${{ matrix.os }}" in
-            # TODO FIXME: UPX on macos-13+ is broken => disable run-packed for now
-            macos-[12][3456789]*) echo "UPX_CONFIG_DISABLE_RUN_PACKED_TEST=ON" >> $GITHUB_ENV ;;
-            *) echo "UPX_CONFIG_DISABLE_RUN_PACKED_TEST=ON" >> $GITHUB_ENV ;;
+            # x86_64 macOS 13+ is still unsupported => disable run-packed
+            *-intel) echo "UPX_CONFIG_DISABLE_RUN_PACKED_TEST=ON" >> $GITHUB_ENV ;;
+            # arm64: macho/arm64dyld; packed files are ad-hoc signed before
+            # they run (see misc/cmake/self_pack_test.cmake)
+            *) ;;
           esac
       - uses: actions/checkout@v7
         with: { submodules: true }
