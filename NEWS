@@ -3,6 +3,10 @@ User visible changes for UPX
 ==================================================================
 
 Changes in 5.3.1 (XX XXX XXXX):
+  * new format macho/arm64dyld: macOS 13+ arm64 executables (thin; chained
+    fixups or LC_DYLD_INFO, e.g. Go) and universal binaries (arm64 slice);
+    still needs --force-macos; sign the packed file with
+    "codesign -s -"; hardened runtime needs disable-library-validation
   * bug fixes - see https://github.com/upx/upx/milestone/26
 
 Changes in 5.3.0 (28 Oct 2026):

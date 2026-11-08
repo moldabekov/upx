@@ -607,6 +607,29 @@ and only uses kernel syscalls. It is not linked against any libc.</code></pre>
                     format, i.e. do not try the linux/elf386 and
                     linux/sh386 formats.</code></pre>
 
+<h2 id="NOTES-FOR-MACHO-ARM64DYLD">NOTES FOR MACHO/ARM64DYLD</h2>
+
+<p>Format: macOS arm64 executables for macOS 13 and later.</p>
+
+<p>Thin arm64 executables (MH_EXECUTE, with chained fixups or LC_DYLD_INFO as produced by Go) are packed so that dyld still loads them: the read-only pages of __TEXT from the first full page of code to its end (code, constants, strings, unwind tables, Go&#39;s pclntab, ...) are compressed into a new __UPXSTUB segment, and a stub that runs as the first initializer restores them at startup. Writable data and __LINKEDIT are not compressed, so ratios are lower than for Linux executables.</p>
+
+<p>Packing of macOS executables still requires <b>--force-macos</b> (or the environment variable UPX_DEBUG_FORCE_PACK_MACOS=1).</p>
+
+<p>The input must be signed (the linker&#39;s ad-hoc signature is enough). The packed file must be signed again before it can run:</p>
+
+<pre><code>upx --force-macos program
+codesign -s - -f program</code></pre>
+
+<p>Only ad-hoc signing is supported. A program that uses the hardened runtime additionally needs the entitlement com.apple.security.cs.disable-library-validation.</p>
+
+<p>At every start the stub writes the original code pages to a temporary file in $TMPDIR (or /tmp) and removes it again right away. If no temporary file can be created, the program exits with status 127 and prints a line like &quot;upx: open failed: errno 1&quot;.</p>
+
+<p>Universal binaries are supported: the arm64 slice is packed, other slices (e.g. x86_64) are kept unchanged, and &quot;upx -d&quot; restores the original file exactly even after &quot;codesign&quot; has re-signed every slice.</p>
+
+<p>Not supported: arm64e, dylibs, x86_64-only files, LC_DYLD_INFO fixups inside __TEXT, threaded binds, Objective-C +load methods, dyld interposing, __mod_init_func, binaries with Objective-C or Swift metadata, an embedded Info.plist or DTrace probes in __TEXT after the code, and binaries whose compressible __TEXT part spans fewer than two 16 KiB pages.</p>
+
+<p>&quot;upx -d&quot; restores the original file byte for byte, including its signature.</p>
+
 <h2 id="NOTES-FOR-PS1-EXE">NOTES FOR PS1/EXE</h2>
 
 <p>This is the executable format used by the Sony PlayStation (PSone), a MIPS R3000 based gaming console which is popular since the late &#39;90s. Support of this format is very similar to the Atari one, because of nostalgic feelings of one of the authors.</p>

@@ -729,6 +729,51 @@ Extra options available for this executable format:
 \&                      format, i.e. do not try the linux/elf386 and
 \&                      linux/sh386 formats.
 .Ve
+.SS "NOTES FOR MACHO/ARM64DYLD"
+.IX Subsection "NOTES FOR MACHO/ARM64DYLD"
+Format: macOS arm64 executables for macOS 13 and later.
+.PP
+Thin arm64 executables (MH_EXECUTE, with chained fixups or LC_DYLD_INFO as
+produced by Go) are packed so that
+dyld still loads them: the read-only pages of _\|_TEXT from the first full
+page of code to its end (code, constants, strings, unwind tables, Go's
+pclntab, ...) are compressed into a new _\|_UPXSTUB segment, and a stub that
+runs as the first initializer restores them at startup. Writable data and _\|_LINKEDIT are not compressed,
+so ratios are lower than for Linux executables.
+.PP
+Packing of macOS executables still requires \fB\-\-force\-macos\fR (or the
+environment variable UPX_DEBUG_FORCE_PACK_MACOS=1).
+.PP
+The input must be signed (the linker's ad-hoc signature is enough). The
+packed file must be signed again before it can run:
+.PP
+.Vb 2
+\&    upx \-\-force\-macos program
+\&    codesign \-s \- \-f program
+.Ve
+.PP
+Only ad-hoc signing is supported. A program that uses the hardened runtime
+additionally needs the entitlement
+com.apple.security.cs.disable\-library\-validation.
+.PP
+At every start the stub writes the original code pages to a temporary file
+in \f(CW$TMPDIR\fR (or /tmp) and removes it again right away. If no temporary file
+can be created, the program exits with status 127 and prints a line like
+"upx: open failed: errno 1".
+.PP
+Universal binaries are supported: the arm64 slice is packed, other slices
+(e.g. x86_64) are kept unchanged, and "upx \-d" restores the original file
+exactly even after "codesign" has re-signed every slice.
+.PP
+Not supported: arm64e, dylibs, x86_64\-only files, LC_DYLD_INFO
+fixups inside _\|_TEXT, threaded binds, Objective-C
++load methods, dyld interposing, _\|_mod_init_func, binaries with
+Objective-C or Swift metadata, an embedded Info.plist or DTrace probes in
+_\|_TEXT after the code, and binaries whose compressible _\|_TEXT part spans
+fewer than two 16 KiB pages.
+.PP
+"upx \-d" restores the original file byte for byte, including its
+signature.
 .SS "NOTES FOR PS1/EXE"
 .IX Subsection "NOTES FOR PS1/EXE"
 This is the executable format used by the Sony PlayStation (PSone),

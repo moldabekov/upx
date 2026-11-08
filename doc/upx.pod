@@ -713,6 +713,50 @@ Extra options available for this executable format:
 
 
 
+=head2 NOTES FOR MACHO/ARM64DYLD
+
+Format: macOS arm64 executables for macOS 13 and later.
+
+Thin arm64 executables (MH_EXECUTE, with chained fixups or LC_DYLD_INFO as
+produced by Go) are packed so that
+dyld still loads them: the read-only pages of __TEXT from the first full
+page of code to its end (code, constants, strings, unwind tables, Go's
+pclntab, ...) are compressed into a new __UPXSTUB segment, and a stub that
+runs as the first initializer restores them at startup. Writable data and __LINKEDIT are not compressed,
+so ratios are lower than for Linux executables.
+
+Packing of macOS executables still requires B<--force-macos> (or the
+environment variable UPX_DEBUG_FORCE_PACK_MACOS=1).
+
+The input must be signed (the linker's ad-hoc signature is enough). The
+packed file must be signed again before it can run:
+
+    upx --force-macos program
+    codesign -s - -f program
+
+Only ad-hoc signing is supported. A program that uses the hardened runtime
+additionally needs the entitlement
+com.apple.security.cs.disable-library-validation.
+
+At every start the stub writes the original code pages to a temporary file
+in $TMPDIR (or /tmp) and removes it again right away. If no temporary file
+can be created, the program exits with status 127 and prints a line like
+"upx: open failed: errno 1".
+
+Universal binaries are supported: the arm64 slice is packed, other slices
+(e.g. x86_64) are kept unchanged, and "upx -d" restores the original file
+exactly even after "codesign" has re-signed every slice.
+
+Not supported: arm64e, dylibs, x86_64-only files, LC_DYLD_INFO
+fixups inside __TEXT, threaded binds, Objective-C
++load methods, dyld interposing, __mod_init_func, binaries with
+Objective-C or Swift metadata, an embedded Info.plist or DTrace probes in
+__TEXT after the code, and binaries whose compressible __TEXT part spans
+fewer than two 16 KiB pages.
+
+"upx -d" restores the original file byte for byte, including its
+signature.
+
 =head2 NOTES FOR PS1/EXE
 
 This is the executable format used by the Sony PlayStation (PSone),
