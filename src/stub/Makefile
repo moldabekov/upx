@@ -82,6 +82,8 @@ STUBS += arm64-linux.elf-so_fold.h
 STUBS += arm64-linux.shlib-init.h
 STUBS += arm64-darwin.macho-entry.h
 STUBS += arm64-darwin.macho-fold.h
+STUBS += arm64-darwin.macho-dyld-entry.h
+STUBS += arm64-darwin.macho-dyld-fold.h
 STUBS += arm64-win64.pe.h
 STUBS += i086-cpm86.cmd.h
 STUBS += i086-dos16.com.h
@@ -1114,6 +1116,27 @@ tmp/arm64-darwin.macho-fold.o : $(srcdir)/src/$$T.S
 
 tmp/arm64-darwin.macho-main.o : $(srcdir)/src/$$T.c
 	$(call tc,gcc) -c -Os $< -o $@
+	$(call tc,f-objstrip,$@)
+
+# macho/arm64-dyld (macOS 13+): ElfLinker entry + flat restore code
+arm64-darwin.macho-dyld-entry.h : $(srcdir)/src/$$T.S
+	$(call tc,gcc) -c $< -o tmp/$T.bin
+	$(call tc,f-embed_objinfo,tmp/$T.bin)
+	$(call tc,bin2h) tmp/$T.bin $@
+
+arm64-darwin.macho-dyld-fold.h : tmp/$$T.o tmp/arm64-darwin.macho-dyld-main.o
+	$(call tc,ld) --no-warn-mismatch --strip-all -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.tmp
+	$(call tc,objcopy) -O binary tmp/$T.tmp tmp/$T.bin
+	rm tmp/$T.tmp
+	chmod a-x tmp/$T.bin
+	$(call tc,bin2h) tmp/$T.bin $@
+
+tmp/arm64-darwin.macho-dyld-fold.o : $(srcdir)/src/$$T.S
+	$(call tc,gcc) -c $< -o $@
+	$(call tc,f-objstrip,$@)
+
+tmp/arm64-darwin.macho-dyld-main.o : $(srcdir)/src/$$T.c
+	$(call tc,gcc) -c -std=gnu99 -Os -mcmodel=tiny -ffreestanding -fno-builtin -fno-stack-protector $< -o $@
 	$(call tc,f-objstrip,$@)
 
 # /***********************************************************************
