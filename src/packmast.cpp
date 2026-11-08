@@ -46,6 +46,7 @@
 #include "p_lx_interp.h"
 #include "p_lx_sh.h"
 #include "p_mach.h"
+#include "p_mach_dyld.h"
 #include "p_ps1.h"
 #include "p_sys.h"
 #include "p_tmt.h"
@@ -218,6 +219,7 @@ PackerBase *PackMaster::visitAllPackers(visit_func_t func, InputFile *f, const O
         VISIT(PackLinuxI386sh);
     }
     VISIT(PackBSDI386);
+    VISIT(PackMachArm64Dyld); // thin arm64 and universal with an arm64 slice
     VISIT(PackMachFat);   // cafebabe conflict
     VISIT(PackLinuxI386); // cafebabe conflict
 

@@ -508,6 +508,40 @@ if(NOT CMAKE_CROSSCOMPILING OR CMAKE_CROSSCOMPILING_EMULATOR)
         include("${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake/pe_exact_test.cmake")
         upx_pe_exact_test()
     endif()
+    if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$" AND NOT UPX_CONFIG_DISABLE_MACHO_DYLD_TEST)
+        # macOS arm64 "macho/arm64-dyld" format
+        add_executable(upx-test-macho-dyld-plain misc/testsuite/macho_dyld_plain.c)
+        add_executable(upx-test-macho-dyld-plain-nohp misc/testsuite/macho_dyld_plain.c)
+        add_executable(upx-test-macho-dyld-exc misc/testsuite/macho_dyld_exc.cpp)
+        add_executable(upx-test-macho-dyld-large misc/testsuite/macho_dyld_large.c)
+        # universal binary: x86_64 slice is kept, arm64 slice is packed
+        add_executable(upx-test-macho-dyld-fat misc/testsuite/macho_dyld_plain.c)
+        set_target_properties(upx-test-macho-dyld-fat PROPERTIES OSX_ARCHITECTURES "arm64;x86_64")
+        foreach(test_target IN ITEMS upx-test-macho-dyld-plain upx-test-macho-dyld-exc
+                                     upx-test-macho-dyld-large upx-test-macho-dyld-fat)
+            target_link_options(${test_target} PRIVATE -Wl,-headerpad,0x1000)
+        endforeach()
+        foreach(test_target IN ITEMS upx-test-macho-dyld-plain upx-test-macho-dyld-plain-nohp
+                                     upx-test-macho-dyld-exc upx-test-macho-dyld-large
+                                     upx-test-macho-dyld-fat)
+            target_compile_options(${test_target} PRIVATE ${warn_Wall} ${warn_Werror})
+        endforeach()
+        include("${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake/macho_dyld_test.cmake")
+        upx_macho_dyld_test()
+        # optional: a Go program (LC_DYLD_INFO instead of chained fixups)
+        find_program(UPX_CONFIG_GO_EXECUTABLE go)
+        if(UPX_CONFIG_GO_EXECUTABLE)
+            set(go_out "${CMAKE_CURRENT_BINARY_DIR}/upx-test-macho-dyld-go")
+            add_custom_command(OUTPUT "${go_out}"
+                COMMAND "${CMAKE_COMMAND}" -E env "GOCACHE=${CMAKE_CURRENT_BINARY_DIR}/go-cache"
+                        GO111MODULE=off
+                        "${UPX_CONFIG_GO_EXECUTABLE}" build -o "${go_out}"
+                        "${CMAKE_CURRENT_SOURCE_DIR}/misc/testsuite/macho_dyld_go.go"
+                DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/misc/testsuite/macho_dyld_go.go")
+            add_custom_target(upx-test-macho-dyld-go ALL DEPENDS "${go_out}")
+            upx_macho_dyld_roundtrip(go "${go_out}")
+        endif()
+    endif()
 else()
     message(STATUS "CMAKE_CROSSCOMPILING = ON")
 endif()

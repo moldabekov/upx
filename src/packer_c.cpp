@@ -34,7 +34,7 @@
 **************************************************************************/
 
 /*static*/ bool Packer::isValidFormat(int format) noexcept {
-    if (!((format >= 1 && format <= UPX_F_CPM86_CMD) ||
+    if (!((format >= 1 && format <= UPX_F_MACH_ARM64_DYLD) ||
           (format >= 129 && format <= UPX_F_DYLIB_PPC64))) {
         return false;
     }

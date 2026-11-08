@@ -613,6 +613,7 @@ using upx::tribool;
 #define UPX_F_W64PE_ARM64EC       44 // NOT YET IMPLEMENTED
 #define UPX_F_LINUX_ELF64_RISCV64 45
 #define UPX_F_CPM86_CMD           46 // CP/M-86 .cmd
+#define UPX_F_MACH_ARM64_DYLD     47 // macOS 13+ dyld-compatible
 
 #define UPX_F_ATARI_TOS         129
 // #define UPX_F_SOLARIS_SPARC     130 // NOT IMPLEMENTED
